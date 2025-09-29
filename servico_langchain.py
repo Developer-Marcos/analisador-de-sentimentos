@@ -15,16 +15,24 @@ llm = ChatOpenAI(
 parseador = JsonOutputParser(pydantic_object=AvaliacaoParser)
 def processar_avaliacao(avalicao):
       prompt = PromptTemplate(template="""
-      Analise a avaliacao e retorne o usuario que fez ela, a avaliacao original, a traducao dessa avaliacao em portugues-BR, e
-      se essa avaliacao foi positiva, negativa ou neutra. Tudo isso em JSON.
+Você é um analista de resenhas. Sua única tarefa é PREENCHER o esquema JSON fornecido.
+Analise a avaliacao e retorne um objeto JSON que contenha:
+1. o usuario que fez a avaliacao,
+2. a avaliacao original,
+3. a traducao dessa avaliacao em portugues-BR,
+4. a polaridade (Positiva, Negativa ou Neutra).
                               
-      Essa é a avaliacao que voce tem que analisar: {avaliacao}. {formatacao_saida}
-      """,
+**NÃO RETORNE NENHUM TEXTO ALÉM DO OBJETO JSON. NÃO REPITA O ESQUEMA.**
+
+Siga este formato JSON: {formatacao_saida}
+                                 
+Essa é a avaliacao que você tem que analisar: {avaliacao}
+""",
 
       input_variables=["avaliacao"],
       partial_variables={"formatacao_saida": parseador.get_format_instructions()})
 
-      chain = prompt | llm
+      chain = prompt | llm | parseador
       resposta = chain.invoke({"avaliacao": avalicao})
       
-      return resposta.content
+      return resposta
